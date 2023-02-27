@@ -1,0 +1,49 @@
+version: '3.7'
+
+services:
+  mysql:
+    image: mariadb:10.1
+    volumes:
+      - ./data/mysql/:/var/lib/mysql
+      - ./data/initdb:/docker-entrypoint-initdb.d:ro
+    restart: always
+    networks:
+      - lggr
+    environment:
+      MYSQL_ROOT_PASSWORD: thesecret
+      MYSQL_DATABASE: lggr
+      MYSQL_USER: lggrci
+      MYSQL_PASSWORD: xxx
+
+  syslog:
+    image: balabit/syslog-ng
+    restart: always
+    depends_on:
+      - mysql
+    cap_add:
+      - ALL
+    volumes:
+      - ./data/syslog/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro
+      - ./data/syslog/lggr.conf:/etc/syslog-ng/conf.d/lggr.conf:ro
+    networks:
+      - lggr
+
+  redis:
+    image: redis:latest
+    restart: always
+    networks:
+      - lggr
+
+  web:
+    build: webphp74/
+    depends_on:
+      - mysql
+      - redis
+    ports:
+      - "127.0.0.1:888:80"
+    restart: always
+    networks:
+      - lggr
+
+networks:
+  lggr:
